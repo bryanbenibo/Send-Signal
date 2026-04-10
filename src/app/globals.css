@@ -1,0 +1,10 @@
+@import "tailwindcss";
+@import "../../theme.css";
+
+body {
+  background: var(--sys-color-background);
+  color: var(--sys-color-on-background);
+  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  padding: 0;
+}

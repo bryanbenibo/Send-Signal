@@ -1,0 +1,413 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  REPLIED
+  INTERESTED
+  NOT_INTERESTED
+  CONVERTED
+  BOUNCED
+  UNSUBSCRIBED
+}
+
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  RUNNING
+  PAUSED
+  COMPLETED
+  CANCELLED
+  FAILED
+}
+
+enum MessageStatus {
+  QUEUED
+  SENDING
+  SENT
+  FAILED
+  DELIVERED
+  READ
+  REPLIED
+  UNSUBSCRIBED
+  CONVERTED
+  BOUNCED
+}
+
+enum MessageDirection {
+  OUTBOUND
+  INBOUND
+}
+
+enum EventType {
+  CAMPAIGN_CREATED
+  CAMPAIGN_STARTED
+  CAMPAIGN_PAUSED
+  CAMPAIGN_COMPLETED
+  LEAD_IMPORTED
+  LEAD_UPDATED
+  LEAD_UNSUBSCRIBED
+  TEMPLATE_CREATED
+  TEMPLATE_UPDATED
+  MESSAGE_QUEUED
+  MESSAGE_SENT
+  MESSAGE_FAILED
+  MESSAGE_DELIVERED
+  MESSAGE_READ
+  REPLY_RECEIVED
+  CONVERSION_RECORDED
+}
+
+enum ConversationSource {
+  CAMPAIGN
+  MANUAL
+  WEBHOOK
+}
+
+model User {
+  id                   String              @id @default(uuid())
+  company_name         String?
+  email                String              @unique
+  password_hash        String
+  role                 UserRole            @default(OWNER)
+  is_active            Boolean             @default(true)
+  created_at           DateTime            @default(now())
+  updated_at           DateTime            @updatedAt
+  sessions             Session[]
+  whatsapp_accounts    WhatsappAccount[]
+  leads                Lead[]
+  lead_tags            LeadTag[]
+  templates            Template[]
+  campaigns            Campaign[]
+  messages             Message[]
+  conversations        Conversation[]
+  activity_logs        ActivityLog[]
+  analytics_snapshots  AnalyticsSnapshot[]
+
+  @@map("users")
+}
+
+model Session {
+  id         String   @id @default(uuid())
+  user_id    String
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  token_hash String   @unique
+  expires_at DateTime
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@map("sessions")
+}
+
+model WhatsappAccount {
+  id                             String   @id @default(uuid())
+  user_id                        String
+  user                           User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  account_name                   String?
+  phone_number_id                String   @unique
+  business_account_id            String
+  access_token_encrypted         String
+  webhook_verify_token_encrypted String?
+  display_phone_number           String?
+  is_active                      Boolean  @default(true)
+  created_at                     DateTime @default(now())
+  updated_at                     DateTime @updatedAt
+  leads                          Lead[]
+  campaigns                      Campaign[]
+  messages                       Message[]
+  conversations                  Conversation[]
+
+  @@index([business_account_id])
+  @@map("whatsapp_accounts")
+}
+
+model Lead {
+  id                   String                 @id @default(uuid())
+  user_id              String
+  user                 User                   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  whatsapp_account_id  String?
+  whatsapp_account     WhatsappAccount?       @relation(fields: [whatsapp_account_id], references: [id], onDelete: SetNull)
+  phone_number         String
+  first_name           String?
+  last_name            String?
+  email                String?
+  source               String?
+  custom_fields_json   Json?
+  opt_in               Boolean                @default(false)
+  unsubscribed         Boolean                @default(false)
+  unsubscribed_at      DateTime?
+  status               LeadStatus             @default(NEW)
+  notes                String?
+  deleted_at           DateTime?
+  created_at           DateTime               @default(now())
+  updated_at           DateTime               @updatedAt
+  campaign_leads       CampaignLead[]
+  messages             Message[]
+  activity_logs        ActivityLog[]
+  conversation_messages ConversationMessage[]
+  lead_tag_assignments LeadTagAssignment[]
+  conversations        Conversation[]
+
+  @@unique([user_id, phone_number])
+  @@index([user_id])
+  @@index([phone_number])
+  @@index([status])
+  @@index([unsubscribed])
+  @@index([opt_in])
+  @@map("leads")
+}
+
+model LeadTag {
+  id                   String              @id @default(uuid())
+  user_id              String
+  user                 User                @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  name                 String
+  color                String?
+  created_at           DateTime            @default(now())
+  updated_at           DateTime            @updatedAt
+  lead_tag_assignments LeadTagAssignment[]
+
+  @@unique([user_id, name])
+  @@map("lead_tags")
+}
+
+model LeadTagAssignment {
+  id         String   @id @default(uuid())
+  lead_id    String
+  lead       Lead     @relation(fields: [lead_id], references: [id], onDelete: Cascade)
+  tag_id     String
+  tag        LeadTag  @relation(fields: [tag_id], references: [id], onDelete: Cascade)
+  created_at DateTime @default(now())
+
+  @@unique([lead_id, tag_id])
+  @@map("lead_tag_assignments")
+}
+
+model Template {
+  id                      String     @id @default(uuid())
+  user_id                 String
+  user                    User       @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  name                    String
+  body                    String
+  placeholder_schema_json Json?
+  preview_example_json    Json?
+  is_archived             Boolean    @default(false)
+  version                 Int        @default(1)
+  deleted_at              DateTime?
+  created_at              DateTime   @default(now())
+  updated_at              DateTime   @updatedAt
+  campaigns               Campaign[]
+
+  @@unique([user_id, name, version])
+  @@map("templates")
+}
+
+model Campaign {
+  id                  String             @id @default(uuid())
+  user_id             String
+  user                User               @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  whatsapp_account_id String?
+  whatsapp_account    WhatsappAccount?   @relation(fields: [whatsapp_account_id], references: [id], onDelete: SetNull)
+  template_id         String?
+  template            Template?          @relation(fields: [template_id], references: [id], onDelete: SetNull)
+  name                String
+  description         String?
+  status              CampaignStatus     @default(DRAFT)
+  scheduled_at        DateTime?
+  started_at          DateTime?
+  completed_at        DateTime?
+  batch_size          Int                @default(20)
+  delay_in_seconds    Int                @default(1)
+  total_recipients    Int                @default(0)
+  total_queued        Int                @default(0)
+  total_sent          Int                @default(0)
+  total_delivered     Int                @default(0)
+  total_read          Int                @default(0)
+  total_replied       Int                @default(0)
+  total_converted     Int                @default(0)
+  total_failed        Int                @default(0)
+  total_unsubscribed  Int                @default(0)
+  deleted_at          DateTime?
+  created_at          DateTime           @default(now())
+  updated_at          DateTime           @updatedAt
+  campaign_leads      CampaignLead[]
+  messages            Message[]
+  analytics_snapshots AnalyticsSnapshot[]
+  activity_logs       ActivityLog[]
+  conversation_messages ConversationMessage[]
+
+  @@index([user_id])
+  @@index([status])
+  @@index([scheduled_at])
+  @@map("campaigns")
+}
+
+model CampaignLead {
+  id              String   @id @default(uuid())
+  campaign_id     String
+  campaign        Campaign @relation(fields: [campaign_id], references: [id], onDelete: Cascade)
+  lead_id         String
+  lead            Lead     @relation(fields: [lead_id], references: [id], onDelete: Cascade)
+  status          String   @default("PENDING") 
+  excluded_reason String?
+  scheduled_for   DateTime?
+  processed_at    DateTime?
+  attempt_count   Int      @default(0)
+  last_attempt_at DateTime?
+  next_attempt_at DateTime?
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+  messages        Message[]
+
+  @@unique([campaign_id, lead_id])
+  @@index([campaign_id])
+  @@index([lead_id])
+  @@map("campaign_leads")
+}
+
+model Message {
+  id                  String             @id @default(uuid())
+  user_id             String
+  user                User               @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  whatsapp_account_id String?
+  whatsapp_account    WhatsappAccount?   @relation(fields: [whatsapp_account_id], references: [id], onDelete: SetNull)
+  campaign_id         String?
+  campaign            Campaign?          @relation(fields: [campaign_id], references: [id], onDelete: SetNull)
+  lead_id             String
+  lead                Lead               @relation(fields: [lead_id], references: [id], onDelete: Cascade)
+  campaign_lead_id    String?
+  campaign_lead       CampaignLead?      @relation(fields: [campaign_lead_id], references: [id], onDelete: SetNull)
+  direction           MessageDirection
+  status              MessageStatus      @default(QUEUED)
+  whatsapp_message_id String?            @unique
+  template_snapshot   Json?
+  rendered_body       String?
+  failure_reason      String?
+  queued_at           DateTime?
+  sending_at          DateTime?
+  sent_at             DateTime?
+  delivered_at        DateTime?
+  read_at             DateTime?
+  replied_at          DateTime?
+  bounced_at          DateTime?
+  retry_count         Int                @default(0)
+  last_retry_at       DateTime?
+  created_at          DateTime           @default(now())
+  updated_at          DateTime           @updatedAt
+  message_events      MessageEvent[]
+  conversation_messages ConversationMessage[]
+
+  @@index([campaign_id])
+  @@index([lead_id])
+  @@index([status])
+  @@index([direction])
+  @@index([sent_at])
+  @@map("messages")
+}
+
+model MessageEvent {
+  id                 String     @id @default(uuid())
+  message_id         String
+  message            Message    @relation(fields: [message_id], references: [id], onDelete: Cascade)
+  event_type         EventType
+  event_payload_json Json?
+  occurred_at        DateTime
+  created_at         DateTime   @default(now())
+
+  @@index([message_id])
+  @@index([occurred_at])
+  @@map("message_events")
+}
+
+model Conversation {
+  id                  String             @id @default(uuid())
+  user_id             String
+  user                User               @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  lead_id             String
+  lead                Lead               @relation(fields: [lead_id], references: [id], onDelete: Cascade)
+  whatsapp_account_id String?
+  whatsapp_account    WhatsappAccount?   @relation(fields: [whatsapp_account_id], references: [id], onDelete: SetNull)
+  source              ConversationSource @default(MANUAL)
+  last_message_at     DateTime?
+  created_at          DateTime           @default(now())
+  updated_at          DateTime           @updatedAt
+  conversation_messages ConversationMessage[]
+
+  @@unique([user_id, lead_id, whatsapp_account_id])
+  @@index([lead_id])
+  @@index([last_message_at])
+  @@map("conversations")
+}
+
+model ConversationMessage {
+  id                  String             @id @default(uuid())
+  conversation_id     String
+  conversation        Conversation       @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
+  lead_id             String
+  lead                Lead               @relation(fields: [lead_id], references: [id], onDelete: Cascade)
+  campaign_id         String?
+  campaign            Campaign?          @relation(fields: [campaign_id], references: [id], onDelete: SetNull)
+  direction           MessageDirection
+  body                String?
+  whatsapp_message_id String?
+  message_id          String?
+  message             Message?           @relation(fields: [message_id], references: [id], onDelete: SetNull)
+  sent_at             DateTime?
+  received_at         DateTime?
+  created_at          DateTime           @default(now())
+  updated_at          DateTime           @updatedAt
+
+  @@map("conversation_messages")
+}
+
+model ActivityLog {
+  id            String     @id @default(uuid())
+  user_id       String
+  user          User       @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  lead_id       String?
+  lead          Lead?      @relation(fields: [lead_id], references: [id], onDelete: Cascade)
+  campaign_id   String?
+  campaign      Campaign?  @relation(fields: [campaign_id], references: [id], onDelete: Cascade)
+  message_id    String?
+  event_type    EventType
+  description   String?
+  metadata_json Json?
+  created_at    DateTime   @default(now())
+
+  @@map("activity_logs")
+}
+
+model AnalyticsSnapshot {
+  id                 String     @id @default(uuid())
+  user_id            String
+  user               User       @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  campaign_id        String
+  campaign           Campaign   @relation(fields: [campaign_id], references: [id], onDelete: Cascade)
+  snapshot_date      DateTime   @db.Date
+  total_recipients   Int        @default(0)
+  total_sent         Int        @default(0)
+  total_delivered    Int        @default(0)
+  total_read         Int        @default(0)
+  total_replied      Int        @default(0)
+  total_converted    Int        @default(0)
+  total_failed       Int        @default(0)
+  total_unsubscribed Int        @default(0)
+  created_at         DateTime   @default(now())
+  updated_at         DateTime   @updatedAt
+
+  @@unique([campaign_id, snapshot_date])
+  @@index([snapshot_date])
+  @@map("analytics_snapshots")
+}

@@ -71,7 +71,7 @@ export default async function CampaignsPage() {
                        {campaign.total_read}
                     </td>
                     <td className="px-6 py-4 text-[var(--sys-color-on-surface-variant)]">
-                      {new Date(campaign.created_at).toLocaleDateString()}
+                      <span suppressHydrationWarning>{new Date(campaign.created_at).toLocaleDateString()}</span>
                     </td>
                   </tr>
                 ))

@@ -38,7 +38,7 @@ export default async function TemplatesPage() {
                 {template.name}
               </h3>
               <p className="text-[var(--sys-font-text-xs-regular-font-size)] text-[var(--sys-color-on-surface-variant)] mb-4">
-                Version {template.version} • Updated {new Date(template.updated_at).toLocaleDateString()}
+                Version {template.version} • Updated <span suppressHydrationWarning>{new Date(template.updated_at).toLocaleDateString()}</span>
               </p>
               <div className="flex-1 bg-[var(--sys-color-surface-container)] rounded p-4 text-[var(--sys-font-text-sm-regular-font-size)] text-[var(--sys-color-on-surface-variant)] font-mono whitespace-pre-wrap border border-[var(--sys-color-outline-variant)]/50">
                 {template.body.length > 100 ? `${template.body.substring(0, 100)}...` : template.body}

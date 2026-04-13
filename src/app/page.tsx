@@ -43,7 +43,7 @@ export default function Home() {
       </main>
 
       <footer className="p-8 text-center text-[var(--sys-color-on-surface-variant)] bg-[var(--sys-color-surface)] border-t border-[var(--sys-color-outline-variant)]">
-        &copy; {new Date().getFullYear()} Send Signal Inc.
+        &copy; {new Date().getFullYear()} <span suppressHydrationWarning>Send Signal Inc.</span>
       </footer>
     </div>
   )

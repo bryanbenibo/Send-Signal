@@ -62,7 +62,7 @@ export default async function LeadsPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-[var(--sys-color-on-surface-variant)]">
-                      {new Date(lead.created_at).toLocaleDateString()}
+                      <span suppressHydrationWarning>{new Date(lead.created_at).toLocaleDateString()}</span>
                     </td>
                   </tr>
                 ))

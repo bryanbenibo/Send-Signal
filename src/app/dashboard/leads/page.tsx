@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/auth"
+import LeadActions from "./LeadActions"
 
 export default async function LeadsPage() {
   const session = await auth()
@@ -15,14 +16,7 @@ export default async function LeadsPage() {
         <h2 className="text-[var(--sys-font-display-sm-bold-font-size)] font-bold text-[var(--sys-color-on-surface)]">
           Leads
         </h2>
-        <div className="flex gap-3">
-          <button className="px-4 py-2 border border-[var(--sys-color-outline)] text-[var(--sys-color-on-surface)] font-medium rounded shadow-sm hover:bg-[var(--sys-color-surface-container)] transition-colors">
-            Add Manually
-          </button>
-          <button className="px-4 py-2 bg-[var(--sys-color-primary)] text-[var(--sys-color-on-primary)] font-medium rounded shadow hover:opacity-90 transition-opacity">
-            Import CSV
-          </button>
-        </div>
+        <LeadActions />
       </div>
 
       <div className="bg-[var(--sys-color-surface)] border border-[var(--sys-color-outline-variant)] rounded-xl overflow-hidden shadow-[var(--sys-effect-shadow-xs)] flex-1 flex flex-col">

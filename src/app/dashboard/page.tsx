@@ -46,7 +46,7 @@ export default async function DashboardOverview() {
         <h3 className="text-[var(--sys-font-text-lg-bold-font-size)] font-semibold text-[var(--sys-color-on-surface)] mb-4">Recent Activity</h3>
         <ul className="space-y-4">
           <li className="text-[var(--sys-color-on-surface-variant)] text-[var(--sys-font-text-md-regular-font-size)] py-2 border-b border-[var(--sys-color-outline-variant)]/50">
-            Account created for {session?.user?.email}
+            Account created for <span suppressHydrationWarning>{session?.user?.email}</span>
           </li>
           <li className="text-[var(--sys-color-on-surface-variant)] text-[var(--sys-font-text-md-regular-font-size)] py-2">
             Waiting for first campaign dispatch.

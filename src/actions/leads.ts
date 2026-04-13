@@ -5,6 +5,65 @@ import { prisma } from "@/lib/prisma"
 import { parsePhoneNumberWithError, ParseError } from 'libphonenumber-js'
 import Papa from 'papaparse'
 
+export async function addLead(data: { first_name: string; last_name: string; phone_number: string; source: string }) {
+  const session = await auth()
+  
+  if (!session?.user?.id) {
+    return { error: "Unauthorized" }
+  }
+
+  if (!data.phone_number) {
+    return { error: "Phone number is required" }
+  }
+
+  try {
+    const phoneNumber = parsePhoneNumberWithError(data.phone_number, 'US')
+    const e164Phone = phoneNumber.format('E.164')
+
+    const existingLead = await prisma.lead.findFirst({
+      where: {
+        user_id: session.user.id,
+        phone_number: e164Phone,
+      },
+    })
+
+    if (existingLead) {
+      return { error: "A lead with this phone number already exists" }
+    }
+
+    await prisma.lead.create({
+      data: {
+        user_id: session.user.id,
+        phone_number: e164Phone,
+        first_name: data.first_name || undefined,
+        last_name: data.last_name || undefined,
+        source: data.source || "Manual",
+        status: "NEW",
+        opt_in: true,
+      },
+    })
+
+    return { success: true }
+  } catch (err) {
+    if (err instanceof ParseError) {
+      return { error: "Invalid phone number format" }
+    }
+    console.error("Add Lead Error:", err)
+    return { error: "Failed to add lead" }
+  }
+}
+
+export async function importLeads(file: File) {
+  try {
+    const csvText = await file.text()
+    const result = await importLeadsFromCSV(csvText, "CSV Import")
+    return result
+  } catch (error) {
+    console.error("Import Leads Error:", error)
+    return { error: "Failed to import leads" }
+  }
+}
+
 export async function importLeadsFromCSV(csvText: string, defaultSource: string = "CSV Import") {
   const session = await auth()
   

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/auth"
+import TemplateActions from "./TemplateActions"
 
 export default async function TemplatesPage() {
   const session = await auth()
@@ -14,9 +15,7 @@ export default async function TemplatesPage() {
         <h2 className="text-[var(--sys-font-display-sm-bold-font-size)] font-bold text-[var(--sys-color-on-surface)]">
           Message Templates
         </h2>
-        <button className="px-4 py-2 bg-[var(--sys-color-primary)] text-[var(--sys-color-on-primary)] font-medium rounded shadow hover:opacity-90 transition-opacity">
-          Create Template
-        </button>
+        <TemplateActions />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -27,9 +26,7 @@ export default async function TemplatesPage() {
             <p className="text-[var(--sys-font-text-md-regular-font-size)] text-[var(--sys-color-on-surface-variant)] mb-6 max-w-md mx-auto">
               Create reusable templates with dynamic variables like {"{FirstName}"} to personalize your bulk outreach.
             </p>
-            <button className="px-6 py-3 bg-[var(--sys-color-primary)] text-[var(--sys-color-on-primary)] font-medium rounded-lg hover:opacity-90 transition-opacity">
-              Create First Template
-            </button>
+            <TemplateActions />
           </div>
         ) : (
           templates.map((template) => (
